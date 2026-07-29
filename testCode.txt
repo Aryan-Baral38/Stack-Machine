@@ -1,0 +1,9 @@
+ia
+
+a
+stack_size 1000
+ 
+PUSH 10
+PUSH 23
+ADD
+
