@@ -4,9 +4,10 @@ import sys
 class STACK_MACHINE:
     def __init__(self, filename):
         tokens = lex(filename)
+        print("token[0] = ", tokens[0])
         if not (tokens[0].lower() == "stack_size"):
             return sys.exit('Invalid Stack Size, first line should be "stack_size size"')
-        
+        print("token 1 is stack_size") 
         self.SP = 0
         self.size = size
         self.address = [0 for x in range(size)]
