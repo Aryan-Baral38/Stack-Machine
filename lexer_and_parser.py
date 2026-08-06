@@ -7,20 +7,20 @@
 
 '''
 STEPS:
-    lexing: -read raw file trims it(remove whitespaces) and turn it into a list of tokens
-            - returns a list -> [token, token, ...]
+    lexing: -reads raw file, trims it(remove whitespaces)
+            - returns a list -> [token, token, ... ]
     parsing: read the tokens and understand the code:
                 - check for syntax errors
-                - group the opcodes and operands
+                - throw compiletime errors
+                - return [(opcodes, operand), ... ] eg. [("PUSH", 10), ("POP", None), ... ]
 DEFINITIONS:
 
-    token: a token is in the form (position, line_number, column_number, atom)
+    token: a tuple of the form (position, line_number, column_number, atom)
             -line and column numbers are from the code file
 
-    atom: an atom is the smallest unit of the code, Types: opcodes and operands(numbers) eg: PUSH, POP,
+    atom: smallest unit of the language, Types: opcodes and operands(numbers) eg: PUSH, POP
 
-    instruction: a single opcode with its valid operand. eg. PUSH 100
-
+    instruction: an opcode with its valid operand. eg. PUSH 100 (in user code), after parsing -> ("PUSH", 100)
 '''
 
 import sys
