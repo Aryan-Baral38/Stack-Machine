@@ -1,7 +1,27 @@
-# todo 
-# --write tests 
-# --test edge cases 
-# 
+
+# todo
+# --write tests
+# --test edge cases
+#
+
+
+'''
+STEPS:
+    lexing: -read raw file trims it(remove whitespaces) and turn it into a list of tokens
+            - returns a list -> [token, token, ...]
+    parsing: read the tokens and understand the code:
+                - check for syntax errors
+                - group the opcodes and operands
+DEFINITIONS:
+
+    token: a token is in the form (position, line_number, column_number, atom)
+            -line and column numbers are from the code file
+
+    atom: an atom is the smallest unit of the code, Types: opcodes and operands(numbers) eg: PUSH, POP,
+
+    instruction: a single opcode with its valid operand. eg. PUSH 100
+
+'''
 
 import sys
 #opcodes---------------------------------------------------------]
@@ -26,33 +46,52 @@ all_operations = set.union(noinput_operations, input_operations)
 class Parser:
 
 
-    def __init__(self, tokens, token_locations):
+    def __init__(self, tokens):
+        # "atom" is the actual words form the code
 
-        #location of token in the text file, used for displaying error
-        self.token_locations = token_locations
+        #single token format: (token_no, line_no, col_no, atom)
         self.tokens = tokens
         self.no_of_tokens = len(tokens)
 
         #current position in the list of tokens
         self.pos = 0
 
-        #When used for anything other than temporary storage, this always has an opcode,
-        self.current_token = self.tokens[self.pos]
-
         #to prevent changing stack size after initilaizaion
         self.stack_size_given = False
 
+    #consume returns the atom
+    def consume(self):
+        parsing_token = self.current_token[3]
+        if self.pos > self.no_of_tokens:
+            self.error("Out of Bounds, token pointer greater than the no of tokens")
+
+        self.pos += 1
+        return parsing_token
+
+    #returns the current token
+    @property
+    def current_token(self):
+        if self.pos < len(self.tokens):
+            return self.tokens[self.pos]
+        return None
+
+    def error(self, error_msg):
+
+        print("Error:", error_msg, "\nline",
+               self.current_token[1], "col",
+               self.current_token[2])
+
+        sys.exit()
+
     def parse(self):
-        print("Inside .parse() method")
 
         #stores parsed result
         parsed_instructions = []
 
         #main loop
-
         while self.pos < self.no_of_tokens:
             #print("inside .parse() loop")
-            token = self.current_token_method().upper()
+            token = self.current_token[3].upper()
 
             # stack_size is the first instrucion
             if self.pos == 0 and  token != "STACK_SIZE":
@@ -69,13 +108,12 @@ class Parser:
                 if self.stack_size_given == True or self.pos != 0:
                     self.error("Stack Size cannot be changed")
 
-                if  not float(self.tokens[1]).is_integer():
+                if  not float(self.tokens[1][3]).is_integer():
                     self.error("Invalid Stack Size")
 
                 if  self.stack_size_given == False:
-                    parsed_instructions.append((self.tokens[0], self.tokens[1]))
+                    parsed_instructions.append((self.tokens[0][3], self.tokens[1][3]))
                     self.pos += 2
-                    token = self.tokens[self.pos]
                     self.stack_size_given = True
                     continue;
                 else:
@@ -110,29 +148,13 @@ class Parser:
 
         return parsed_instructions
 
-    def current_token_method(self):
-        if self.pos < len(self.tokens):
-            return self.tokens[self.pos]
-        return None
-
-    def consume(self):
-        parsing_token = self.tokens[self.pos]
-        if self.pos > self.no_of_tokens:
-            sys.exit("Out of Bounds")
-
-        self.pos += 1
-        return parsing_token
 
 
-    def error(self, error_msg):
-        print("Error:", error_msg, "\nline", self.token_locations[self.pos][0], "column",
-              self.token_locations[self.pos][1])
-        sys.exit()
 
 
 def lexer():
     tokens = []
-    print("list of args: " , sys.argv)
+    #print("list of args: " , sys.argv)
 
     try:
         if (len(sys.argv) != 2):
@@ -145,35 +167,35 @@ def lexer():
         sys.exit("File read error")
 
     with open(filename, 'r') as file:
-        token_locations = []
         line_no = 1
-        token_pos = 0
+        token_pos = 1
         for line in file:
             line = line.strip()
 
-            for i in line:
-                if i.isnumeric():
-                    i = float(i)
 
             if not line == '':
                 new_tokens = list(line.split(' '))
+                print("line read: ", new_tokens)
                 for i in range(len(new_tokens)):
-                    token_locations += [(line_no, i, token_pos, new_tokens[i])]
+                    tokens += [(token_pos,line_no, i + 1, new_tokens[i])]
                     token_pos += 1
-                tokens += new_tokens
             line_no += 1
 
-
-        print(tokens)
-        return tokens, token_locations
+        #print(tokens)
+        return tokens
 
 
 if __name__ == "__main__":
-    tokens,token_locations = lexer()
+    tokens= lexer()
+
+    print(tokens)
+
     #print("Lexed successfully")
-    print("tokens: " , tokens)
-    parser_obj = Parser(tokens,token_locations)
+    #print("tokens: " , tokens)
+
+    parser_obj = Parser(tokens)
     #print("Parser object created")
     #print(all_operations)
     final_instructions = parser_obj.parse()
     print("\n Parsed instrucions: ", final_instructions)
+
