@@ -1,16 +1,20 @@
+# To add:
+#   -Variables
+#   -Branching
+#   -sub-routines
+
+
 import operator
 import sys
+from lexer_and_parser import lexer, Parser, get_filename
 
 class STACK_MACHINE:
-    def __init__(self, filename):
-        tokens = lex(filename)
-        print("token[0] = ", tokens[0])
-        if not (tokens[0].lower() == "stack_size"):
-            return sys.exit('Invalid Stack Size, first line should be "stack_size size"')
-        print("token 1 is stack_size") 
+    def __init__(self, size):
         self.SP = 0
         self.size = size
         self.address = [0 for x in range(size)]
+        self.input_buffer = []
+        self.output_buffer = []
         
 
     def inrSP(self):
@@ -21,11 +25,15 @@ class STACK_MACHINE:
 
     def PUSH(self, value):
         self.address[self.SP] = value
+        self.input_buffer.append(value)
         self.inrSP()
 
     def POP(self):
+        val = self.address[self.SP - 1]
+        self.address[self.SP] = 0
         self.dcrSP()
-        return self.address[self.SP]
+        self.output_buffer.append(val)
+        return val 
 
     def DUP(self):
         self.PUSH(self.address[self.SP - 1])
@@ -112,34 +120,134 @@ class STACK_MACHINE:
         self.address[val] = a
 
     def HALT(self):
-        sys.exit("Halted")
+        self.quit()
+
+    def quit(self):
+        print("Executed without error")
+        print("Stack")
+        for i in range(len(self.address)):
+            if i == self.SP - 1:
+                print(f"[{i}]: --> {self.address[i]}")
+            else:
+                print(f"[{i}]: {self.address[i]}")
+
+            
+          
+        print("output buffer: ", self.output_buffer)
+        print("Top Value: ", self.address[self.SP - 1])
+
 
     #lexing and executing
-    def lex(file):
-        tokens = []
-        with open(file, 'r') as file:
-            for line in file:
-                line = line.strip();
-                if not line == '':
-                    tokens += line.split(' ')
-        if tokens[0] != size and not token[1].isnunm():
-            sys.exit("Stack Size not specified")
-        return tokens
-    def parse_and_execute(self):
-        self.pos = 0
-        self.push_count = 0
-        self.pop_count = 0
-        while (pos <= len(self.tokens)):
-            if not tokens[0] = size
 
 
-    
+class Execution(STACK_MACHINE):
+    def __init__(self, parsed_instructions, size):
+        super().__init__(size)
+        self.parsed_instructions = parsed_instructions  
+        self.execute()
+
+    def execute(self):
+        i = 0 
+        print(self.parsed_instructions)
+        for instruction in self.parsed_instructions:
+            opcode = instruction[0]
+            operand = instruction[1]
+            match opcode:
+                #stack size is already initialized
+                case "DCR":
+                    self.dcrSP()
+
+                case "DUP":
+                    self.DUP()
+
+                case "INR":
+                    self.inrSP()
+
+                case "OVER":
+                    self.OVER()
+
+                case "STACK_SIZE":
+                    pass 
+
+                case "SWAP":
+                    self.SWAP()
+
+                case "POP":
+                    self.output_buffer.append(self.POP())
+                
+                case "PUSH":
+                    self.PUSH(operand)
+                # Arithmetic and logcal operations
+                case "ADD":
+                    self.ADD()
+                case "SUB":
+                    self.SUB()
+                
+                case "MUL":
+                    self.MUL()
+
+                case "DIV":
+                    self.DIV()
+
+                case "MOV":
+                    self.MOD()
+
+                case "AND":
+                    self.AND()
+
+                case "OR":
+                    self.OR()
+
+                case "OXR":
+                    self.XOR()
+                
+                case "SHL":
+                    self.SHL(operand)
+                case "SHR":
+                    self.SHR(operand)
+                case "EQ":
+                    self.EQ()
+
+                case "LT":
+                    self.LT()
+
+                case "GT":
+                    self.GT()
+
+                case "GE":
+                    self.GE()
+                case "LE":
+                    self.LE()
+
+                case "NOT":
+                    self.NOT()
+
+                case "INR":
+                    self.INR()
+
+                case "DCR":
+                    self.DCR()
+
+                #mem Access
+                case "LOAD":
+                    self.LOAD(operand)
+
+                case "STORE":
+                    print("store reached", opcode, operand, type(operand))
+                    self.STORE(operand)
+
+                case "HALT":
+                    self.HALT()
+                
+                case _:
+                    sys.exit("Invalid opcode:", f"'{opcode}'" , " found during execution")
+        
 
      
 if __name__ == "__main__":
-    m = STACK_MACHINE()               
-    m.PUSH(21)
-    m.PUSH(20)
-    a = m.POP()
-    b = m.POP()
-    print(a, b)
+    filename = get_filename(debugging = False)
+    tokens = lexer(filename)
+    parser_obj = Parser(tokens)
+    instructions_list = parser_obj.parse()
+    size = instructions_list[0][1]
+    m = Execution(instructions_list, size)              

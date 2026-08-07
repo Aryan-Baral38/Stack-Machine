@@ -28,7 +28,7 @@ IMPORTANT PATTERNS:
       and its validation must be done BEFORE calling consume() on current token
 
 '''
-
+import re
 import sys
 #opcodes---------------------------------------------------------]
 #set of opcodes
@@ -40,17 +40,20 @@ noinput_operations = {"ADD", "SUB", "MUL", "DIV", "GT", "GE",
                       "DUP", "POP",  "HALT"}
 
 #these operations require operand
-input_operations = {"SHR", "SHL", "LOAD", "STORE", "PUSH", "STACK_SIZE"}
-all_operations = set.union(noinput_operations, input_operations)
+input_operations = {"SHR", "SHL", "PUSH", "STACK_SIZE"}
+address_input_operation = {"STORE", "LOAD" }
+all_operations = set.union(noinput_operations, input_operations, address_input_operation)
+
 
 '''
     the parser will read a list of [ tokens ] are return a list of tuples [ (opcode, operand(s) ],
     most operations dont have an operand
 '''
-def lexer():
-    tokens = []
-    #print("list of args: " , sys.argv)
-    debugging = 1
+
+def get_filename(debugging = False):
+   #print("list of args: " , sys.argv)
+    filename = 'None'
+    
     if not debugging:
         try:
             if (len(sys.argv) != 2):
@@ -66,7 +69,12 @@ def lexer():
         filename = "/workspaces/175494904/conj/testcode1.txt"
         #filename = "testcode2.txt"
         ##________________________________________
+    if not filename == "None":
+        return filename
 
+def lexer(filename):
+    tokens = []
+ 
     with open(filename, 'r') as file:
         line_no = 1
         token_pos = 0
@@ -99,6 +107,7 @@ class Parser:
 
         #to prevent changing stack size after initilaizaion
         self.stack_size_given = False
+        self.stack_size = 0
 
     #returns an atom and advance the position
     def consume(self):
@@ -137,6 +146,8 @@ class Parser:
                 disp = f" for '{self.previous_atom}' "
             case "for_current":
                 disp = f" for '{self.current_token[3]}' "
+            case "no_halt":
+                disp = ''
 
         print("Error:", error_msg,f":{disp}:","on", "line",
                self.current_token[1], "col",
@@ -155,8 +166,9 @@ class Parser:
             return self.tokens[self.pos - 1][3]
 
     def parse(self):
-
-        #stores parsed result
+        if not "HALT" in [x[3] for x in self.tokens]:
+            sys.exit("Error: Halt not found : No 'HALT': specify end of program with 'HALT' ")
+        #stores parsed result'''
         parsed_instructions = []
 
         #main loop
@@ -185,8 +197,9 @@ class Parser:
                 if  self.stack_size_given == False:
                     size_opcode = self.consume().upper() # should be "STACK_SIZE"
                     stack_size = self.consume()          #some int value
-                    parsed_instructions.append((size_opcode, stack_size))
+                    parsed_instructions.append((size_opcode, int(stack_size)))
                     self.stack_size_given = True
+                    self.stack_size = int(stack_size)
                     continue;
                 else:
                     self.error("Stack invalid", "throw_atom")
@@ -209,7 +222,7 @@ class Parser:
             #-----------------------------------------------------------------------------
             if atom in input_operations:
                 #print("current token: ", self.current_token, atom)
-
+                
                 if not self.peek().isdigit():
                     self.error("Operand invaid or missing", "for_current" )
 
@@ -221,7 +234,7 @@ class Parser:
                 #print("current token: ", self.current_token, atom)
                 if not operand.isdigit():
                     self.error("Digit expected")
-                parsed_instructions.append((opcode, operand))
+                parsed_instructions.append((opcode, float(operand)))
 
             #------------------------------------------------------------------------------
             #handle noinput_operations
@@ -229,6 +242,7 @@ class Parser:
 
             elif atom in noinput_operations:
                 if atom == "HALT":
+                    parsed_instructions.append((atom, 'None'))
                     self.consume()
                     break
                 next_atom = self.peek()
@@ -237,16 +251,40 @@ class Parser:
 
                 opcode = self.consume()
                 parsed_instructions.append((opcode, None))
-                if opcode == "HALT":
-                    break
-        #print("Token no: ", self.pos, "/", self.no_of_tokens)
+                
+            elif atom in address_input_operation:
+                #memory addresses must start with *. eg: STORE *100
+                next_token = self.peek()
+                
+                matches = re.search(r"(\*)(\d+)",next_token)
+                if matches:
+                    address = matches.group(2)
+                    #print("address:", address)
+                    #print("stack size", self.stack_size, type(self.stack_size))
 
+                    if not float(address).is_integer():
+                        self.error("Integer value expected")
+                    address = int(address)
+                    if (address) > self.stack_size:
+                        self.error("address larger than stack")
+
+                    opcode = self.consume()
+                    self.consume() #
+                    parsed_instructions.append((opcode, address))
+                    continue
+                if not next_token.isnumeric():
+                    self.error("Memory address expected, *address")
+                if float(next_token).is_integer():
+                    self.error(f"Invalid memory address, maybe *{next_token}?")
+                self.error("address operand error")                
         return parsed_instructions
 
 
 
 if __name__ == "__main__":
-    tokens= lexer()
+    file = get_filename(debugging = 0)
+
+    tokens= lexer(file)
 
     #print(tokens)
 
@@ -257,5 +295,5 @@ if __name__ == "__main__":
     #print("Parser object created")
     #print(all_operations)
     final_instructions = parser_obj.parse()
-    print("\nParsed instrucions: ", final_instructions)
+    #print("\nParsed instrucions: ", final_instructions)
 
