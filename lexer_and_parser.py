@@ -1,4 +1,4 @@
-
+#aa
 # todo
 # --write tests
 # --test edge cases
@@ -148,6 +148,8 @@ class Parser:
                 disp = f" for '{self.current_token[3]}' "
             case "no_halt":
                 disp = ''
+            case "var_not_int":
+                disp = "non integer variable address"
 
         print("Error:", error_msg,f":{disp}:","on", "line",
                self.current_token[1], "col",
@@ -216,13 +218,26 @@ class Parser:
                 self.error("Invalid Opcode")
 
             #-----------------------------------------------------------------------------
-            #handle opcodes that take operand
+            '''
+            # handle opcodes that take operand
             # if current instruction takes operand, consume two tokens and
             #  check if the second token is digit
             #-----------------------------------------------------------------------------
+            '''
             if atom in input_operations:
                 #print("current token: ", self.current_token, atom)
-                
+                ''' Handle variable operand
+                        variable addresses are returned as str
+                '''
+                matches = re.search(r"^@a(\d+)$",self.peek()) 
+                if matches:
+                    opcode = self.consume()
+                    if not float(matches.gorup(1)).is_integer():
+                        self.error("Invalid variable name", "var_not_int")
+                    var_address = self.consume()
+                    parsed_instructions.append((opcode, var_address))
+                    continue
+
                 if not self.peek().isdigit():
                     self.error("Operand invaid or missing", "for_current" )
 
@@ -234,13 +249,14 @@ class Parser:
                 #print("current token: ", self.current_token, atom)
                 if not operand.isdigit():
                     self.error("Digit expected")
+                '''Direct values are stored as floats'''
                 parsed_instructions.append((opcode, float(operand)))
 
             #------------------------------------------------------------------------------
             #handle noinput_operations
             #-------------------------------------------------------------------------------
 
-            elif atom in noinput_operations:
+            if atom in noinput_operations:
                 if atom == "HALT":
                     parsed_instructions.append((atom, 'None'))
                     self.consume()
@@ -251,12 +267,27 @@ class Parser:
 
                 opcode = self.consume()
                 parsed_instructions.append((opcode, None))
-                
-            elif atom in address_input_operation:
+                continue
+            """
+                for distinguishing them during execution:
+                    memory addresses are stored as integers type
+                    var_addresses are stored as str types 
+            """
+            if atom in address_input_operation:
                 #memory addresses must start with *. eg: STORE *100
                 next_token = self.peek()
-                
-                matches = re.search(r"(\*)(\d+)",next_token)
+                print("peeked")
+                matches = re.search(r"^@a(\d+)$", next_token)
+                if matches:
+                    print("matched1")
+                    opcode = self.consume()
+                    var_address = matches.group(1)
+                    if not float(var_address).is_integer():
+                        self.error("Invalid variable name", "var_not_int")
+                    var_address = self.consume()
+                    parsed_instructions.append((opcode, var_address))
+                    continue
+                matches = re.search(r"^(\*)(\d+)$",next_token)
                 if matches:
                     address = matches.group(2)
                     #print("address:", address)
@@ -269,14 +300,14 @@ class Parser:
                         self.error("address larger than stack")
 
                     opcode = self.consume()
-                    self.consume() #
-                    parsed_instructions.append((opcode, address))
+                    mem_address = self.consume() #
+                    parsed_instructions.append((opcode,mem_address))
                     continue
                 if not next_token.isnumeric():
                     self.error("Memory address expected, *address")
                 if float(next_token).is_integer():
-                    self.error(f"Invalid memory address, maybe *{next_token}?")
-                self.error("address operand error")                
+                    self.error(f"Invalid memory/variable address, maybe *{next_token}' or 'a{next_token}'?")
+                self.error("Invalid operand error")                
         return parsed_instructions
 
 
@@ -295,5 +326,5 @@ if __name__ == "__main__":
     #print("Parser object created")
     #print(all_operations)
     final_instructions = parser_obj.parse()
-    #print("\nParsed instrucions: ", final_instructions)
+    print("\nParsed instrucions: ", final_instructions)
 

@@ -1,5 +1,7 @@
 # To add:
+#   
 #   -Variables
+#   -Execution error handling
 #   -Branching
 #   -sub-routines
 
@@ -13,6 +15,7 @@ class STACK_MACHINE:
         self.SP = 0
         self.size = size
         self.address = [0 for x in range(size)]
+        self.variables = ["NaN"] * 5
         self.input_buffer = []
         self.output_buffer = []
         
@@ -76,14 +79,35 @@ class STACK_MACHINE:
     def XOR(self):
         self.binary_op(operator.xor)
 
-    def SHL(self, val):
-        b = self.POP()
-        self.PUSH(operator.lshift(b, val))
-
     def SHR(self, val):
         b = self.POP()
-        self.PUSH(operator.rshift(b, val))
-        
+        if val.startswith('%a'):
+            val_address = int(val.lstrip('*')) 
+            if val_address > len(self.variables) - 1:
+                self.error("Variable out of bound")
+            val = self.variables[val_address]
+            self.PUSH(operator.rshift(b, val))
+            return
+        if val.is_integer():
+            self.PUSH(operator.rshift(b, val))
+        else:
+            self.error("Invalid shift amount")
+        """ ADD ERROR HANDLING"""
+
+    def SHL(self, val):
+        b = self.POP()
+        if val.startswith('%a'):
+            val_address = int(val.lstrip('*')) 
+            if val_address > len(self.variables):
+                self.error("var out of bound")
+            val = self.variables[val_address]
+            self.PUSH(operator.lshift(b, val))
+            return
+        if val.is_integer():
+
+            self.PUSH(operator.lshift(b, val))
+
+       
     def EQ(self):
         self.binary_op(operator.eq)
 
@@ -112,12 +136,38 @@ class STACK_MACHINE:
         self.PUSH(a - 1)
 
     # Memory Access
-    def LOAD(self, val):
-        self.PUSH(self.address[val])
-
-    def STORE(self, val):
+    def LOAD(self, address):
         a = self.POP()
-        self.address[val] = a
+        if address.startswith('*'):
+            address = int(val.lstrip('*')) #mem address
+            if address > size -1 :
+                self.error("Address out of bound")
+            self.PUSH(self.address[address])
+            return
+
+        if address.startswith('@a'):
+            address = int(val.lstrip('@a')) #variable address
+            if address > len(self.variables) - 1:
+                self.error("Variable out of bound")
+            self.PUSH(self.variables[address])
+            
+        
+        
+    def STORE(self, address):
+        a = self.POP()
+        if address.startswith('*'):
+            address= int(address.lstrip('*'))
+            if address > size - 1:
+                self.error("Address out of bound")
+
+            self.address[address] = a 
+            return
+        if address.startswith('@a'):
+            address = int(address.lstrip('@a'))
+            if address > len(self.variables) -1:
+                self.error("Variable out of bound")
+            self.variables[address] = a 
+            return
 
     def HALT(self):
         self.quit()
@@ -135,8 +185,11 @@ class STACK_MACHINE:
           
         print("output buffer: ", self.output_buffer)
         print("Top Value: ", self.address[self.SP - 1])
-
-
+        print("variables " , self.variables)
+    
+    def error(error_msg, code = None):
+        print("Error:" , error_msg)
+        sys.exit()
     #lexing and executing
 
 
