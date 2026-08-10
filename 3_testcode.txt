@@ -1,7 +1,0 @@
-stack_size 10
-PUSH 12
-PUSH 10
-DUP
-SWAP
-STORE *6
-HALT 
