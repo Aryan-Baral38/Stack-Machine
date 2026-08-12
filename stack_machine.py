@@ -13,9 +13,10 @@ from lexer_and_parser import lexer, Parser, get_filename
 class STACK_MACHINE:
     def __init__(self, size):
         self.SP = 0
-        self.size = size
-        self.address = [0 for x in range(size)]
-        self.variables = ["NaN"] * 5
+        self.stack_size = size
+        self.address = ["NaN" for x in range(size)]
+        self.no_of_var = 10
+        self.variables = ["NaN"] * self.no_of_var 
         self.input_buffer = []
         self.output_buffer = []
         
@@ -81,31 +82,31 @@ class STACK_MACHINE:
 
     def SHR(self, val):
         b = self.POP()
-        if val.startswith('%a'):
-            val_address = int(val.lstrip('*')) 
-            if val_address > len(self.variables) - 1:
-                self.error("Variable out of bound")
-            val = self.variables[val_address]
-            self.PUSH(operator.rshift(b, val))
-            return
-        if val.is_integer():
-            self.PUSH(operator.rshift(b, val))
-        else:
-            self.error("Invalid shift amount")
-        """ ADD ERROR HANDLING"""
+        if val.isnumeric():
+            if float(val).is_integer():
+                self.PUSH(operator.rshift(b, val))
+                return
+        address_type , address = self.is_valid_address()
+        if not address_type  == 'variable':
+            self.error("Integer or variable expected")
+        self.PUSH(operator.rshift(b, self.variables[address]))
+        return 
 
+       
     def SHL(self, val):
         b = self.POP()
-        if val.startswith('%a'):
-            val_address = int(val.lstrip('*')) 
-            if val_address > len(self.variables):
-                self.error("var out of bound")
-            val = self.variables[val_address]
-            self.PUSH(operator.lshift(b, val))
-            return
-        if val.is_integer():
+        if val.isnumeric():
+            if float(val).is_integer():
+                self.PUSH(operator.lshift(b, val))
+                return
+        address_type , address = self.is_valid_address()
+        if self.variables[address] == "NaN":
+            self.error("variable uninitialized")
+        if not address_type  == 'variable':
+            self.error("Integer or variable expected")
+        self.PUSH(operator.lshift(b, self.variables[address]))
+        return 
 
-            self.PUSH(operator.lshift(b, val))
 
        
     def EQ(self):
@@ -137,37 +138,36 @@ class STACK_MACHINE:
 
     # Memory Access
     def LOAD(self, address):
-        a = self.POP()
-        if address.startswith('*'):
-            address = int(val.lstrip('*')) #mem address
-            if address > size -1 :
-                self.error("Address out of bound")
-            self.PUSH(self.address[address])
-            return
-
-        if address.startswith('@a'):
-            address = int(val.lstrip('@a')) #variable address
-            if address > len(self.variables) - 1:
-                self.error("Variable out of bound")
+        address_type, address = self.is_valid_address(address)
+        if address_type == "variable":
             self.PUSH(self.variables[address])
-            
-        
-        
+            return
+        elif address_type == "memory":
+            self.PUSH(self.address[address])
+
     def STORE(self, address):
         a = self.POP()
-        if address.startswith('*'):
-            address= int(address.lstrip('*'))
-            if address > size - 1:
-                self.error("Address out of bound")
-
-            self.address[address] = a 
-            return
-        if address.startswith('@a'):
-            address = int(address.lstrip('@a'))
-            if address > len(self.variables) -1:
-                self.error("Variable out of bound")
+        address_type, address = self.is_valid_address(address)
+        if address_type == "variable":
             self.variables[address] = a 
             return
+        if address_type == "memory":
+            self.address[address] = a
+
+    def is_valid_address(self, val):
+        if val.startswith('@a'):
+            var_address = int(val.lstrip('@a'))
+            if var_address > self.no_of_var - 1:
+                self.error("Variable out of bound", "var_outside_range")
+            return ("variable", var_address)
+        
+        if val.startswith('*'):
+            mem_address = int(val.lstrip('*'))
+            if mem_address > self.stack_size - 1:
+                self.error("Address out of bound" , "mem_address_outside_stacl")
+            return ("memory", mem_address)
+        self.error("Invalid memory or variable address")
+
 
     def HALT(self):
         self.quit()
@@ -188,10 +188,9 @@ class STACK_MACHINE:
         print("variables " , self.variables)
     
     def error(error_msg, code = None):
-        print("Error:" , error_msg)
+        print("Error:" , error_msg, "msg was before")
         sys.exit()
     #lexing and executing
-
 
 class Execution(STACK_MACHINE):
     def __init__(self, parsed_instructions, size):

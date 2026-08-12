@@ -10,7 +10,7 @@ DEFINITIONS:
     token: result of lexing, a tuple (atom_number, line_number, column_number, atom)
             -line and column numbers are from the code file
 
-    atom: smallest unit of the language, Types: opcodes and operands(numbers) eg: PUSH, POP
+    atom: smallest unit of the language, Types: opcodes eg. PUSH, POP and operands(numbers) 
 
     instruction: an opcode with its valid operand.
       eg. PUSH 100 (in user code), after parsing -> ("PUSH", 100)
@@ -132,24 +132,39 @@ class Parser:
             return self.tokens[self.pos][3]
 
     def error(self, error_msg, code = "None"):
+        disp = ''
         match code:
 
             case "None":
                 disp = ''
+
             case "throw_atom":
-                disp = f" '{self.current_token[3]}' "
+                disp = f" '{self.current_atom}' "
+
             case "throw_previous":
-                disp = f" '{self.previous()}' "
+                disp = f" '{self.previous_atom}' "
+
             case "too_many_operands":
                 disp = f" ({self.previous_atom} {self.current_atom}) "
+
             case "for_previous":
                 disp = f" for '{self.previous_atom}' "
+
             case "for_current":
-                disp = f" for '{self.current_token[3]}' "
+                disp = f" for '{self.current_atom}' "
+
             case "no_halt":
                 disp = ''
+
             case "var_not_int":
-                disp = "non integer variable address"
+                disp = "use @a[integer_address]"
+
+            case "non_numeric_address":
+                disp = "addresses must be integer values"
+
+            case "missing_address_specifier":
+                disp = "use prefix * for memory address or @a for variable address"
+
 
         print("Error:", error_msg,f":{disp}:","on", "line",
                self.current_token[1], "col",
@@ -177,7 +192,7 @@ class Parser:
         while self.pos < self.no_of_tokens:
             #print("inside .parse() loop")
             atom = self.current_token[3].upper()
-
+            print("curent atom: ", atom) 
             # stack_size is the first instrucion
             if self.pos == 0 and  atom != "STACK_SIZE":
                 #print("first token: ", token, self.tokens[self.pos], self.tokens[0])
@@ -257,15 +272,15 @@ class Parser:
             #-------------------------------------------------------------------------------
 
             if atom in noinput_operations:
-                if atom == "HALT":
-                    parsed_instructions.append((atom, 'None'))
-                    self.consume()
-                    break
-                next_atom = self.peek()
-                if next_atom.isnumeric():
-                    sys.error("Unwanted operand: ", "throw_atom")
-
+                #current atom is already valid so we consume it
                 opcode = self.consume()
+                if opcode == "HALT":
+                    parsed_instructions.append((atom, 'None'))
+                    break
+                #after consumng, we are already at the next atom 
+                next_atom = self.current_atom
+                if next_atom  not in all_operations:
+                    self.error(f"'{next_atom} is invalid'")
                 parsed_instructions.append((opcode, None))
                 continue
             """
@@ -303,11 +318,13 @@ class Parser:
                     mem_address = self.consume() #
                     parsed_instructions.append((opcode,mem_address))
                     continue
+
                 if not next_token.isnumeric():
-                    self.error("Memory address expected, *address")
+                    self.error("Invalid memory address or variable", "non_numeric_address")
                 if float(next_token).is_integer():
-                    self.error(f"Invalid memory/variable address, maybe *{next_token}' or 'a{next_token}'?")
+                    self.error(f"Missing variable or address specifier", "missing_address_specifier")
                 self.error("Invalid operand error")                
+
         return parsed_instructions
 
 
