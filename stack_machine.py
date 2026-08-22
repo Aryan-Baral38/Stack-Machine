@@ -4,8 +4,6 @@
 #   -runtime error handling
 #   -Branching
 #   -sub-routines
-
-
 import operator
 import sys
 from lexer_and_parser import lexer, Parser, get_filename
@@ -20,6 +18,7 @@ class STACK_MACHINE:
         self.variables = ["NaN"] * self.no_of_var 
         self.input_buffer = []
         self.output_buffer = []
+        self.labels = {}
         self.flags = {"zero": 0, "minus" : 0, "even": 0}
         self.PC = 0 
 
@@ -108,8 +107,6 @@ class STACK_MACHINE:
             self.error("Integer or variable expected")
         self.PUSH(operator.lshift(b, self.variables[address]))
         return 
-
-
        
     def EQ(self):
         self.binary_op(operator.eq)
@@ -137,6 +134,10 @@ class STACK_MACHINE:
     def DCR(self):
         a = self.POP()
         self.PUSH(a - 1)
+
+    def check_label(self, val):
+        if val not in self.labels:
+            self.error("Label Error")
 
     # Memory Access
     def LOAD(self, address):
@@ -199,11 +200,24 @@ class Execution(STACK_MACHINE):
         super().__init__(size)
         self.parsed_instructions = parsed_instructions  
         self.no_of_instructions = len(self.parsed_instructions) 
+        self.map_labels()
         self.execute()
 
     @property 
     def line_no(self):
         return self.parsed_instructions[self.PC][0]
+
+    def map_labels(self):
+        pos = 0
+        while pos < self.no_of_instructions:
+            instruction = self.parsed_instructions[pos]
+            opcode = instruction[1]
+            operand = instruction[2]
+            if opcode == "label":
+                if operand in self.labels:
+                    self.error("Label already used")
+                self.labels[operand] = pos + 1
+            pos += 1
 
     def execute(self):
         while self.PC < self.no_of_instructions:
@@ -214,6 +228,8 @@ class Execution(STACK_MACHINE):
             self.PC += 1
             match opcode:
                 #stack size is already initialized
+                case "label":
+                    self.check_label(operand)
                 case "DCR":
                     self.dcrSP()
 
@@ -300,8 +316,6 @@ class Execution(STACK_MACHINE):
                 
                 case _:
                     sys.exit(f"Invalid opcode: '{opcode}' found during execution")
-       
-
      
 if __name__ == "__main__":
     filename = get_filename(debugging = False)

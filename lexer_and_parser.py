@@ -93,32 +93,23 @@ def lexer(filename):
         #print(tokens)
         return tokens
 
-
 class Parser:
 
     def __init__(self, tokens):
-        # "atom" is the actual words form the code
-
         #single token format: (token_no, line_no, col_no, atom)
         self.tokens = tokens
         self.no_of_tokens = len(tokens)
-
-        #current position in the list of tokens
         self.pos = 0
-
         #to prevent changing stack size after initilaizaion
         self.stack_size_given = False
         self.stack_size = 0
 
     #returns an atom and advance the position
     def consume(self):
-        #print("Position before consuming:", self.pos)
         parsing_atom = self.current_token[3]
         if self.pos > self.no_of_tokens:
             self.error("Out of Bounds, token pointer greater than the no of tokens")
-
         self.pos += 1
-        #print("Position after consuming:", self.pos)
         return parsing_atom
 
     #returns the current token(not atom)
@@ -127,6 +118,7 @@ class Parser:
         if self.pos < len(self.tokens):
             return self.tokens[self.pos]
         return None
+
     @property
     def current_atom(self):
         if self.pos < len(self.tokens):
@@ -166,7 +158,6 @@ class Parser:
             case "missing_address_specifier":
                 disp = "use prefix * for memory address or @a for variable address"
 
-
         print("Error:", error_msg,f":{disp}:","on", "line",
                self.current_token[1], "col",
                self.current_token[2])
@@ -195,26 +186,29 @@ class Parser:
                     self.error("Unwanted Operand")
             self.error("Invalid Opcode")
 
+    def is_label(self, atom):
+        matches = re.search(r"^<([a-zA-Z_]+)>$", atom)
+        if matches:
+            return (True, matches.group(1))
+        matches = re.search(r"^<.+>|<.+|.+>|<>",atom)
+        if matches:
+            self.error("Invalid label name")
+        return (False, None)
+
 
     def parse(self):
         if not "HALT" in [x[3] for x in self.tokens]:
             sys.exit("Error: Halt not found : No 'HALT': specify end of program with 'HALT' ")
-        #stores parsed result'''
         parsed_instructions = []
 
         #main loop
         while self.pos < self.no_of_tokens:
-            #print("inside .parse() loop")
             atom = self.current_token[3].upper()
             line_no = self.current_token[1]
             print("curent atom: ", atom) 
             # stack_size is the first instrucion
             if self.pos == 0 and  atom != "STACK_SIZE":
-                #print("first token: ", token, self.tokens[self.pos], self.tokens[0])
-                #print("first inst is stack_size")
                 self.error('First instruction must be stack size, use "stack_size"',)
-
-
             #-----------------------------------------------------------------------------------
             # stack_size must have an integer operand
             # -----------------------------------------------------------------------------------
@@ -236,6 +230,11 @@ class Parser:
                 else:
                     self.error("Stack invalid", "throw_atom")
 
+            is_a_label, label = self.is_label(atom)
+            if is_a_label:
+                self.consume()
+                parsed_instructions.append((line_no, "label", label))
+                continue
             self.opcode_recognized()
             #-----------------------------------------------------------------------------
             '''
@@ -280,7 +279,7 @@ class Parser:
                     break
                 #after consumng, we are already at the next atom 
                 next_atom = self.current_atom
-                if next_atom  not in all_operations:
+                if next_atom  not in all_operations and not self.is_label(next_atom)[0]:
                     self.error(f"'{next_atom} is invalid'")
                 parsed_instructions.append((line_no,opcode, None))
                 continue
@@ -320,21 +319,10 @@ class Parser:
         else:
             return ("invalid", None)
 
-
-
 if __name__ == "__main__":
     file = get_filename(debugging = 0)
-
     tokens= lexer(file)
-
-    #print(tokens)
-
-    #print("Lexed successfully")
-    #print("tokens: " , tokens)
-
     parser_obj = Parser(tokens)
-    #print("Parser object created")
-    #print(all_operations)
     final_instructions = parser_obj.parse()
     print("\nParsed instrucions: ", final_instructions)
 
