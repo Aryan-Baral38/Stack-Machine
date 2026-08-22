@@ -181,6 +181,19 @@ class Parser:
     def previous_atom(self):
         if self.pos > 0:
             return self.tokens[self.pos - 1][3]
+    
+    def opcode_recognized(self):
+        atom = self.current_token[3]
+        if not atom in all_operations:
+            if self.previous_atom.upper() in input_operations:
+                self.error("Expected an operand after",  "throw_previous" )
+            if atom.isdigit():
+                if self.previous_atom.isdigit():
+                    self.error("Too many operands", "too_many_operands")
+                if self.previous_atom in noinput_operations:
+                    self.error("Unwanted Operand")
+            self.error("Invalid Opcode")
+
 
     def parse(self):
         if not "HALT" in [x[3] for x in self.tokens]:
@@ -192,6 +205,7 @@ class Parser:
         while self.pos < self.no_of_tokens:
             #print("inside .parse() loop")
             atom = self.current_token[3].upper()
+            line_no = self.current_token[1]
             print("curent atom: ", atom) 
             # stack_size is the first instrucion
             if self.pos == 0 and  atom != "STACK_SIZE":
@@ -214,24 +228,14 @@ class Parser:
                 if  self.stack_size_given == False:
                     size_opcode = self.consume().upper() # should be "STACK_SIZE"
                     stack_size = self.consume()          #some int value
-                    parsed_instructions.append((size_opcode, int(stack_size)))
+                    parsed_instructions.append((line_no,size_opcode, int(stack_size)))
                     self.stack_size_given = True
                     self.stack_size = int(stack_size)
                     continue;
                 else:
                     self.error("Stack invalid", "throw_atom")
 
-            # make sure all tokens here token must be an opcode
-            if not atom in all_operations:
-                if self.previous_atom.upper() in input_operations:
-                    self.error("Expected an operand after",  "throw_previous" )
-                if atom.isdigit():
-                    if self.previous_atom.isdigit():
-                        self.error("Too many operands", "too_many_operands")
-                    if self.previous_atom in noinput_operations:
-                        self.error("Unwanted Operand")
-                self.error("Invalid Opcode")
-
+            self.opcode_recognized()
             #-----------------------------------------------------------------------------
             '''
             # handle opcodes that take operand
@@ -250,7 +254,7 @@ class Parser:
                     if not float(matches.gorup(1)).is_integer():
                         self.error("Invalid variable name", "var_not_int")
                     var_address = self.consume()
-                    parsed_instructions.append((opcode, var_address))
+                    parsed_instructions.append((line_no,opcode, var_address))
                     continue
 
                 if not self.peek().isdigit():
@@ -265,7 +269,7 @@ class Parser:
                 if not operand.isdigit():
                     self.error("Digit expected")
                 '''Direct values are stored as floats'''
-                parsed_instructions.append((opcode, float(operand)))
+                parsed_instructions.append((line_no,opcode, float(operand)))
 
             #------------------------------------------------------------------------------
             #handle noinput_operations
@@ -275,13 +279,13 @@ class Parser:
                 #current atom is already valid so we consume it
                 opcode = self.consume()
                 if opcode == "HALT":
-                    parsed_instructions.append((atom, 'None'))
+                    parsed_instructions.append((line_no,atom, 'None'))
                     break
                 #after consumng, we are already at the next atom 
                 next_atom = self.current_atom
                 if next_atom  not in all_operations:
                     self.error(f"'{next_atom} is invalid'")
-                parsed_instructions.append((opcode, None))
+                parsed_instructions.append((line_no,opcode, None))
                 continue
             """
                 for distinguishing them during execution:
@@ -300,7 +304,7 @@ class Parser:
                     if not float(var_address).is_integer():
                         self.error("Invalid variable name", "var_not_int")
                     var_address = self.consume()
-                    parsed_instructions.append((opcode, var_address))
+                    parsed_instructions.append((line_no,opcode, var_address))
                     continue
                 matches = re.search(r"^(\*)(\d+)$",next_token)
                 if matches:
@@ -316,7 +320,7 @@ class Parser:
 
                     opcode = self.consume()
                     mem_address = self.consume() #
-                    parsed_instructions.append((opcode,mem_address))
+                    parsed_instructions.append((line_no,opcode,mem_address))
                     continue
 
                 if not next_token.isnumeric():
@@ -325,6 +329,19 @@ class Parser:
                     self.error(f"Missing variable or address specifier", "missing_address_specifier")
                 self.error("Invalid operand error")                
 
+        
+        def is_valid_var(self, next_token):
+            matches_var_address = re.search(r"^@a(\d+)$", next_token)
+            matches_mem_address = re.search(r"^\*(\d+)$", next_token)
+            if matches_var_address:
+                opcode  = self.consume()
+                if not float(matches.gorup(1)).is_integer():
+                    self.error("Invalid variable name", "var_not_int")
+                var_address = self.consume()
+                return (True, int(matches.group(1)))
+                
+        
+           
         return parsed_instructions
 
 

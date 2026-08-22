@@ -1,7 +1,7 @@
 # To add:
 #   
 #   -Variables
-#   -Execution error handling
+#   -runtime error handling
 #   -Branching
 #   -sub-routines
 
@@ -13,13 +13,15 @@ from lexer_and_parser import lexer, Parser, get_filename
 class STACK_MACHINE:
     def __init__(self, size):
         self.SP = 0
+        print("SIZE:" ,size)
         self.stack_size = size
-        self.address = ["NaN" for x in range(size)]
+        self.address = ["NaN" for x in range(self.stack_size)]
         self.no_of_var = 10
         self.variables = ["NaN"] * self.no_of_var 
         self.input_buffer = []
         self.output_buffer = []
         
+        self.PC = 0 
 
     def inrSP(self):
         self.SP += 1
@@ -188,7 +190,7 @@ class STACK_MACHINE:
         print("variables " , self.variables)
     
     def error(error_msg, code = None):
-        print("Error:" , error_msg, "msg was before")
+        print("Error:" , error_msg, "msg was before", "line", self.line_no)
         sys.exit()
     #lexing and executing
 
@@ -196,14 +198,23 @@ class Execution(STACK_MACHINE):
     def __init__(self, parsed_instructions, size):
         super().__init__(size)
         self.parsed_instructions = parsed_instructions  
+        self.no_of_instructions = len(self.parsed_instructions) 
         self.execute()
 
+    @property 
+    def line_no():
+        return self.parsed_instructions(self.PC)[0]
+
     def execute(self):
-        i = 0 
-        print(self.parsed_instructions)
-        for instruction in self.parsed_instructions:
-            opcode = instruction[0]
-            operand = instruction[1]
+        print("parsed_inr",self.parsed_instructions)
+        print("printed")
+        while self.PC <= self.no_of_instructions:
+            instruction = self.parsed_instructions[self.SP]
+
+            opcode = instruction[1]
+            operand = instruction[2]
+            self.SP += 1
+            print("SP: ", self.SP)
             match opcode:
                 #stack size is already initialized
                 case "DCR":
@@ -292,8 +303,8 @@ class Execution(STACK_MACHINE):
                     self.HALT()
                 
                 case _:
-                    sys.exit("Invalid opcode:", f"'{opcode}'" , " found during execution")
-        
+                    sys.exit(f"Invalid opcode: '{opcode}' found during execution")
+       
 
      
 if __name__ == "__main__":
@@ -301,5 +312,5 @@ if __name__ == "__main__":
     tokens = lexer(filename)
     parser_obj = Parser(tokens)
     instructions_list = parser_obj.parse()
-    size = instructions_list[0][1]
+    size = instructions_list[0][2]
     m = Execution(instructions_list, size)              
