@@ -24,7 +24,8 @@ STEPS:
                 - return [(opcodes, operand), ... ] eg. [("PUSH", 10), ("POP", None), ... ]
 
 IMPORTANT PATTERNS:
-    -calling peek() after consume() is forbidden, peek()-ing next token
+    -helper functions cannot cause destructive changes like consuming tokens.
+    -calling peek() after consume() is forbidden, peeking next token
       and its validation must be done BEFORE calling consume() on current token
 
 '''
@@ -248,22 +249,18 @@ class Parser:
                 ''' Handle variable operand
                         variable addresses are returned as str
                 '''
-                matches = re.search(r"^@a(\d+)$",self.peek()) 
-                if matches:
+                next_atom = self.peek()
+                addr_type, address = self.is_valid_address(next_atom)
+                if addr_type == "var":
                     opcode = self.consume()
-                    if not float(matches.gorup(1)).is_integer():
-                        self.error("Invalid variable name", "var_not_int")
                     var_address = self.consume()
-                    parsed_instructions.append((line_no,opcode, var_address))
+                    parsed_instructions.append((line_no, opcode, var_address))
                     continue
-
+                
                 if not self.peek().isdigit():
                     self.error("Operand invaid or missing", "for_current" )
 
                 opcode = self.consume()
-                #print("current token: ", self.current_token, atom)
-
-
                 operand = self.consume()
                 #print("current token: ", self.current_token, atom)
                 if not operand.isdigit():
@@ -294,55 +291,34 @@ class Parser:
             """
             if atom in address_input_operation:
                 #memory addresses must start with *. eg: STORE *100
-                next_token = self.peek()
+                next_atom = self.peek()
                 print("peeked")
-                matches = re.search(r"^@a(\d+)$", next_token)
-                if matches:
-                    print("matched1")
+                address_type, address = self.is_valid_address(next_atom)
+                if address_type in ("var", "mem"):
                     opcode = self.consume()
-                    var_address = matches.group(1)
-                    if not float(var_address).is_integer():
-                        self.error("Invalid variable name", "var_not_int")
-                    var_address = self.consume()
-                    parsed_instructions.append((line_no,opcode, var_address))
-                    continue
-                matches = re.search(r"^(\*)(\d+)$",next_token)
-                if matches:
-                    address = matches.group(2)
-                    #print("address:", address)
-                    #print("stack size", self.stack_size, type(self.stack_size))
-
-                    if not float(address).is_integer():
-                        self.error("Integer value expected")
-                    address = int(address)
-                    if (address) > self.stack_size:
-                        self.error("address larger than stack")
-
-                    opcode = self.consume()
-                    mem_address = self.consume() #
-                    parsed_instructions.append((line_no,opcode,mem_address))
-                    continue
-
-                if not next_token.isnumeric():
-                    self.error("Invalid memory address or variable", "non_numeric_address")
-                if float(next_token).is_integer():
-                    self.error(f"Missing variable or address specifier", "missing_address_specifier")
-                self.error("Invalid operand error")                
-
-        
-        def is_valid_var(self, next_token):
-            matches_var_address = re.search(r"^@a(\d+)$", next_token)
-            matches_mem_address = re.search(r"^\*(\d+)$", next_token)
-            if matches_var_address:
-                opcode  = self.consume()
-                if not float(matches.gorup(1)).is_integer():
-                    self.error("Invalid variable name", "var_not_int")
-                var_address = self.consume()
-                return (True, int(matches.group(1)))
-                
-        
-           
+                    address = self.consume()
+                    parsed_instructions.append((line_no, opcode, address))
+                else:
+                    if not next_atom.isnumeric():
+                        self.error("Invalid memory address or variable format" )
+                    if float(next_atom).is_integer():
+                        self.error(f"Missing variable(@a) or address(*) specifier", "missing_address_specifier")
+                    self.error("Invalid operand error")                
         return parsed_instructions
+
+    def is_valid_address(self, token):
+        if not token:
+             return ("invalid", None)
+        
+        matches_var = re.search(r"^@a(\d+)$", token)
+        matches_mem = re.search(r"^\*(\d+)$", token)
+
+        if matches_var:
+            return ("var", int(matches_var.group(1)))
+        elif matches_mem:
+            return ("mem", int(matches_mem.group(1)))
+        else:
+            return ("invalid", None)
 
 
 

@@ -20,7 +20,7 @@ class STACK_MACHINE:
         self.variables = ["NaN"] * self.no_of_var 
         self.input_buffer = []
         self.output_buffer = []
-        
+        self.flags = {"zero": 0, "minus" : 0, "even": 0}
         self.PC = 0 
 
     def inrSP(self):
@@ -36,7 +36,7 @@ class STACK_MACHINE:
 
     def POP(self):
         val = self.address[self.SP - 1]
-        self.address[self.SP] = 0
+        self.address[self.SP - 1] = 0
         self.dcrSP()
         self.output_buffer.append(val)
         return val 
@@ -88,7 +88,7 @@ class STACK_MACHINE:
             if float(val).is_integer():
                 self.PUSH(operator.rshift(b, val))
                 return
-        address_type , address = self.is_valid_address()
+        address_type , address = self.is_valid_address(val)
         if not address_type  == 'variable':
             self.error("Integer or variable expected")
         self.PUSH(operator.rshift(b, self.variables[address]))
@@ -97,11 +97,11 @@ class STACK_MACHINE:
        
     def SHL(self, val):
         b = self.POP()
-        if val.isnumeric():
+        if isinstance(val, (int, float)):
             if float(val).is_integer():
                 self.PUSH(operator.lshift(b, val))
                 return
-        address_type , address = self.is_valid_address()
+        address_type , address = self.is_valid_address(val)
         if self.variables[address] == "NaN":
             self.error("variable uninitialized")
         if not address_type  == 'variable':
@@ -176,6 +176,7 @@ class STACK_MACHINE:
 
     def quit(self):
         print("Executed without error")
+        print("Evaluated value: ", self.address[self.SP - 1], "at address", self.SP - 1)
         print("Stack")
         for i in range(len(self.address)):
             if i == self.SP - 1:
@@ -186,10 +187,9 @@ class STACK_MACHINE:
             
           
         print("output buffer: ", self.output_buffer)
-        print("Top Value: ", self.address[self.SP - 1])
         print("variables " , self.variables)
     
-    def error(error_msg, code = None):
+    def error(self, error_msg, code = None):
         print("Error:" , error_msg, "msg was before", "line", self.line_no)
         sys.exit()
     #lexing and executing
@@ -202,19 +202,16 @@ class Execution(STACK_MACHINE):
         self.execute()
 
     @property 
-    def line_no():
-        return self.parsed_instructions(self.PC)[0]
+    def line_no(self):
+        return self.parsed_instructions[self.PC][0]
 
     def execute(self):
-        print("parsed_inr",self.parsed_instructions)
-        print("printed")
-        while self.PC <= self.no_of_instructions:
-            instruction = self.parsed_instructions[self.SP]
+        while self.PC < self.no_of_instructions:
+            instruction = self.parsed_instructions[self.PC]
 
             opcode = instruction[1]
             operand = instruction[2]
-            self.SP += 1
-            print("SP: ", self.SP)
+            self.PC += 1
             match opcode:
                 #stack size is already initialized
                 case "DCR":
@@ -252,7 +249,7 @@ class Execution(STACK_MACHINE):
                 case "DIV":
                     self.DIV()
 
-                case "MOV":
+                case "MOD":
                     self.MOD()
 
                 case "AND":
@@ -261,7 +258,7 @@ class Execution(STACK_MACHINE):
                 case "OR":
                     self.OR()
 
-                case "OXR":
+                case "XOR":
                     self.XOR()
                 
                 case "SHL":
@@ -296,7 +293,6 @@ class Execution(STACK_MACHINE):
                     self.LOAD(operand)
 
                 case "STORE":
-                    print("store reached", opcode, operand, type(operand))
                     self.STORE(operand)
 
                 case "HALT":
@@ -314,3 +310,4 @@ if __name__ == "__main__":
     instructions_list = parser_obj.parse()
     size = instructions_list[0][2]
     m = Execution(instructions_list, size)              
+
