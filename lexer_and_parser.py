@@ -42,9 +42,10 @@ noinput_operations = {"ADD", "SUB", "MUL", "DIV", "GT", "GE",
 
 #these operations require operand
 input_operations = {"SHR", "SHL", "PUSH", "STACK_SIZE"}
+control_flow = {"JMP", "JZ", "JNZ"}
 address_input_operation = {"STORE", "LOAD" }
-all_operations = set.union(noinput_operations, input_operations, address_input_operation)
-
+all_operations = set.union(noinput_operations, input_operations,
+                           address_input_operation, control_flow)
 
 '''
     the parser will read a list of [ tokens ] are return a list of tuples [ (opcode, operand(s) ],
@@ -158,7 +159,7 @@ class Parser:
             case "missing_address_specifier":
                 disp = "use prefix * for memory address or @a for variable address"
 
-        print("Error:", error_msg,f":{disp}:","on", "line",
+        print("compt Error:", error_msg,f":{disp}:","on", "line",
                self.current_token[1], "col",
                self.current_token[2])
 
@@ -232,10 +233,21 @@ class Parser:
 
             is_a_label, label = self.is_label(atom)
             if is_a_label:
+                #comsume label, consume is called only once 
                 self.consume()
                 parsed_instructions.append((line_no, "label", label))
                 continue
             self.opcode_recognized()
+
+            if atom in control_flow:
+                is_a_label, label = self.is_label(self.peek())
+                if is_a_label:
+                    opcode = self.consume()
+                    _ = self.consume()
+                    parsed_instructions.append((line_no, opcode, label))
+                else:
+                    self.error("Expected a label <label>")
+                continue
             #-----------------------------------------------------------------------------
             '''
             # handle opcodes that take operand
@@ -266,6 +278,7 @@ class Parser:
                     self.error("Digit expected")
                 '''Direct values are stored as floats'''
                 parsed_instructions.append((line_no,opcode, float(operand)))
+                continue
 
             #------------------------------------------------------------------------------
             #handle noinput_operations
@@ -280,7 +293,7 @@ class Parser:
                 #after consumng, we are already at the next atom 
                 next_atom = self.current_atom
                 if next_atom  not in all_operations and not self.is_label(next_atom)[0]:
-                    self.error(f"'{next_atom} is invalid'")
+                    self.error(f"'{next_atom}' is invalid")
                 parsed_instructions.append((line_no,opcode, None))
                 continue
             """
@@ -297,12 +310,14 @@ class Parser:
                     opcode = self.consume()
                     address = self.consume()
                     parsed_instructions.append((line_no, opcode, address))
+                    continue
                 else:
                     if not next_atom.isnumeric():
                         self.error("Invalid memory address or variable format" )
                     if float(next_atom).is_integer():
                         self.error(f"Missing variable(@a) or address(*) specifier", "missing_address_specifier")
-                    self.error("Invalid operand error")                
+                    self.error("Invalid operand error") 
+
         return parsed_instructions
 
     def is_valid_address(self, token):

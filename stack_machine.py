@@ -1,9 +1,9 @@
-# To add:
-#   
 #   -Variables
 #   -runtime error handling
 #   -Branching
+# To add:
 #   -sub-routines
+#   --print function
 import operator
 import sys
 from lexer_and_parser import lexer, Parser, get_filename
@@ -21,19 +21,50 @@ class STACK_MACHINE:
         self.labels = {}
         self.flags = {"zero": 0, "minus" : 0, "even": 0}
         self.PC = 0 
-
+    
+    
     def inrSP(self):
-        self.SP += 1
+        if self.SP < self.stack_size:
+            self.SP += 1
+        else:
+            self.error("Stack pointer exceeds stack size")
 
-    def dcrSP(self):                    
-        self.SP -= 1
+    def dcrSP(self):    
+        if self.SP > 0:
+            self.SP -= 1
+        else:
+            self.error("Negative SP")
+    
+    def JMP(self, arg_label):
+        if not arg_label in self.labels:
+            self.error(f"<{arg_label}> Label doesnt exist" )
+
+        self.PC = self.labels[arg_label] + 1
+
+    def JNZ(self, arg_label):
+        if not arg_label in self.labels:
+            self.error(f"<{arg_label}> Label doesnt exist" )
+        a = self.POP()
+        if a != 0:
+            self.PC = self.labels[arg_label] + 1
+    def JZ(self, arg_label):
+        if not arg_label in self.labels:
+            self.error(f"<{arg_label}> Label doesnt exist" )
+
+        a = self.POP()
+        if a == 0:
+            self.PC = self.labels[arg_label] + 1
 
     def PUSH(self, value):
+        if self.SP >= self.stack_size:
+            self.error("Stack pointer exceeds stack size")
         self.address[self.SP] = value
         self.input_buffer.append(value)
         self.inrSP()
 
     def POP(self):
+        if self.SP <= 0:
+            self.error("Negative stack pointer")
         val = self.address[self.SP - 1]
         self.address[self.SP - 1] = 0
         self.dcrSP()
@@ -44,11 +75,15 @@ class STACK_MACHINE:
         self.PUSH(self.address[self.SP - 1])
 
     def SWAP(self):
+        if self.SP < 1:
+            self.error("Nothing to swap")
         a = self.address[self.SP - 2]
         self.address[self.SP - 2] = self.address[self.SP - 1]
         self.address[self.SP - 1] = a
 
     def OVER(self):
+        if self.SP < 2:
+            self.error("'OVER' not possible, SP range error")
         self.PUSH(self.address[self.SP - 2])
 
     # Arithmetic and Logical operations
@@ -82,6 +117,7 @@ class STACK_MACHINE:
         self.binary_op(operator.xor)
 
     def SHR(self, val):
+        
         b = self.POP()
         if val.isnumeric():
             if float(val).is_integer():
@@ -191,7 +227,7 @@ class STACK_MACHINE:
         print("variables " , self.variables)
     
     def error(self, error_msg, code = None):
-        print("Error:" , error_msg, "msg was before", "line", self.line_no)
+        print("runt Error:" , error_msg, ": line", self.parsed_instructions[self.PC - 1][0] )
         sys.exit()
     #lexing and executing
 
@@ -216,12 +252,14 @@ class Execution(STACK_MACHINE):
             if opcode == "label":
                 if operand in self.labels:
                     self.error("Label already used")
-                self.labels[operand] = pos + 1
+                self.labels[operand] = pos
             pos += 1
 
     def execute(self):
+        print("parsed_instructions: " ,self.parsed_instructions)
         while self.PC < self.no_of_instructions:
             instruction = self.parsed_instructions[self.PC]
+
 
             opcode = instruction[1]
             operand = instruction[2]
@@ -229,7 +267,8 @@ class Execution(STACK_MACHINE):
             match opcode:
                 #stack size is already initialized
                 case "label":
-                    self.check_label(operand)
+                    pass
+                    #self.check_label(operand)
                 case "DCR":
                     self.dcrSP()
 
@@ -238,6 +277,12 @@ class Execution(STACK_MACHINE):
 
                 case "INR":
                     self.inrSP()
+                case "JMP":
+                    self.JMP(operand)
+                case "JNZ":
+                    self.JNZ(operand)
+                case "JZ":
+                    self.JZ(operand)
 
                 case "OVER":
                     self.OVER()
@@ -312,6 +357,7 @@ class Execution(STACK_MACHINE):
                     self.STORE(operand)
 
                 case "HALT":
+                    print("inside halt")
                     self.HALT()
                 
                 case _:
