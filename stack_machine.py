@@ -14,7 +14,7 @@ class STACK_MACHINE:
         print("SIZE:" ,size)
         self.stack_size = size
         self.address = ["NaN" for x in range(self.stack_size)]
-        self.call_stack = [0]*256
+        self.call_stack = [0]*10
         self.call_SP = 0
         self.no_of_var = 10
         self.variables = ["NaN"] * self.no_of_var 
@@ -29,13 +29,13 @@ class STACK_MACHINE:
         if self.SP < self.stack_size:
             self.SP += 1
         else:
-            self.error("Stack pointer exceeds stack size")
+            self.error("Stack overflow, Stack pointer exceeds stack size", "stack_overflow")
 
     def dcrSP(self):    
         if self.SP > 0:
             self.SP -= 1
         else:
-            self.error("Negative SP")
+            self.error("Stack underflow, Negative SP")
     
     def JMP(self, arg_label):
         if not arg_label in self.labels:
@@ -60,14 +60,14 @@ class STACK_MACHINE:
 
     def PUSH(self, value):
         if self.SP >= self.stack_size:
-            self.error("Stack pointer exceeds stack size")
+            self.error("Stack overflow, pushing outside stack", "larger_than_stack")
         self.address[self.SP] = value
         self.input_buffer.append(value)
         self.inrSP()
 
     def POP(self):
         if self.SP <= 0:
-            self.error("Negative stack pointer")
+            self.error("Stack underflow", "stack_overflow")
         val = self.address[self.SP - 1]
         self.address[self.SP - 1] = 0
         self.dcrSP()
@@ -79,14 +79,14 @@ class STACK_MACHINE:
 
     def SWAP(self):
         if self.SP < 1:
-            self.error("Nothing to swap")
+            self.error("Nothing to swap, Stack underflow")
         a = self.address[self.SP - 2]
         self.address[self.SP - 2] = self.address[self.SP - 1]
         self.address[self.SP - 1] = a
 
     def OVER(self):
         if self.SP < 2:
-            self.error("'OVER' not possible, SP range error")
+            self.error("Stack underflow", "stack_overflow")
         self.PUSH(self.address[self.SP - 2])
     #sub-routines
     def CALL(self, arg_label):
@@ -94,15 +94,17 @@ class STACK_MACHINE:
         if arg_label not in self.labels:
             self.error(f"<{arg_label}> Label doesnt exist" )
         if self.call_SP >= len(self.call_stack):
-            self.error("Call Stack Overflow")
+            self.error("Call Stack Overflow", "call_stack_overflow")
 
-        self.call_stack[self.call_SP] = self.PC + 1
+        self.call_stack[self.call_SP] = self.PC 
         self.call_SP += 1
         self.PC = self.labels[arg_label] + 1
 
     def RET(self):
+        print("call_stack", self.call_stack)
+        print("call_SP", self.call_SP)
         if self.call_SP == 0:
-            self.error("Call stack underflow")
+            self.error("Call stack underflow", "call_stack_underflow")
         self.call_SP -= 1
         self.PC = self.call_stack[self.call_SP]
         
@@ -222,8 +224,10 @@ class STACK_MACHINE:
                 var_address = int(raw_index)
             except ValueError:
                 self.error(f"Invalid variable address format: '{val}'")
-            if var_address < 0 or var_address >= self.no_of_var:
-                self.error("Variable out of bound", "var_outside_range")    
+            if var_address >= self.no_of_var:
+                self.error("Stack overflow", "stack_overflow")    
+            if var_address < 0:
+                self.error("Stacl underflow")
             return ("variable", var_address)
 
     # Memory Address: *<index>
@@ -234,8 +238,10 @@ class STACK_MACHINE:
             except ValueError:
                 self.error(f"Invalid memory address format: '{val}'")
 
-            if mem_address < 0 or mem_address >= self.stack_size:
-                self.error("Address out of bound", "mem_address_outside_stack") 
+            if mem_address >= self.stack_size:
+                self.error("Stack overflow", "stack_overflow") 
+            if mem_address < 0:
+                self.error("Stack underflow")
         return ("memory", mem_address)
 
         self.error("Invalid memory or variable address")  
@@ -258,9 +264,17 @@ class STACK_MACHINE:
           
         print("output buffer: ", self.output_buffer)
         print("variables " , self.variables)
+        sys.exit()
     
     def error(self, error_msg, code = None):
-        print("runt Error:" , error_msg, ": line", self.parsed_instructions[self.PC - 1][0] )
+        disp = ''
+        match code:
+            case "stack_overflow": disp = f"Stack upto address {self.stack_size - 1} but accessing address{self.SP}"
+            case "call_stack_overflow": ...
+            case "call_stack_underflow": disp = f"RET executed on an empty call stack"
+
+
+        print("Runt Error:" , error_msg,f":{disp}:","line", self.parsed_instructions[self.PC - 1][0] )
         sys.exit()
     #lexing and executing
 
@@ -325,7 +339,7 @@ class Execution(STACK_MACHINE):
                     self.SWAP()
 
                 case "POP":
-                    self.output_buffer.append(self.POP())
+                    self.POP()
                 
                 case "PUSH":
                     self.PUSH(operand)

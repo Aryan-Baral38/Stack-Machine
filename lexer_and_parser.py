@@ -153,7 +153,7 @@ class Parser:
                 disp = f" for '{self.current_atom}' "
 
             case "no_halt":
-                disp = ''
+                disp = 'Add "HALT" to exit the program'
 
             case "var_not_int":
                 disp = "use @a[integer_address]"
@@ -164,7 +164,7 @@ class Parser:
             case "missing_address_specifier":
                 disp = "use prefix * for memory address or @a for variable address"
 
-        print("compt Error:", error_msg,f":{disp}:","on", "line",
+        print("Compt Error:", error_msg,f":{disp}:","on", "line",
                self.current_token[1], "col",
                self.current_token[2])
 
@@ -194,12 +194,12 @@ class Parser:
             self.error("Invalid Opcode")
 
     def is_label(self, atom):
-        matches = re.search(r"^<([a-zA-Z_]+)>$", atom)
+        matches = re.search(r"^<([\w]+)>$", atom)
         if matches:
             return (True, matches.group(1))
-        matches = re.search(r"^<.+>|<.+|.+>|<>",atom)
+        matches = re.search(r"^(<.+>|<.+|.+>|<>)",atom)
         if matches:
-            self.error("Invalid label name")
+            self.error(f"Invalid label name {matches.group(1)}")
         return (False, None)
 
     def is_valid_address(self, token):
@@ -220,7 +220,7 @@ class Parser:
 
     def parse(self):
         if not "HALT" in [x[3] for x in self.tokens]:
-            sys.exit("Error: Halt not found : No 'HALT': specify end of program with 'HALT' ")
+            self.error("HALT not found", "no_halt")
         parsed_instructions = []
 
         #main loop
