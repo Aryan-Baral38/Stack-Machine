@@ -14,6 +14,8 @@ class STACK_MACHINE:
         print("SIZE:" ,size)
         self.stack_size = size
         self.address = ["NaN" for x in range(self.stack_size)]
+        self.call_stack = [0]*256
+        self.call_SP = 0
         self.no_of_var = 10
         self.variables = ["NaN"] * self.no_of_var 
         self.input_buffer = []
@@ -46,6 +48,7 @@ class STACK_MACHINE:
             self.error(f"<{arg_label}> Label doesnt exist" )
         a = self.POP()
         if a != 0:
+            self.PC = self.labels[arg_label] + 1
             self.PC = self.labels[arg_label] + 1
     def JZ(self, arg_label):
         if not arg_label in self.labels:
@@ -85,7 +88,24 @@ class STACK_MACHINE:
         if self.SP < 2:
             self.error("'OVER' not possible, SP range error")
         self.PUSH(self.address[self.SP - 2])
+    #sub-routines
+    def CALL(self, arg_label):
+        print("Inside CALL")
+        if arg_label not in self.labels:
+            self.error(f"<{arg_label}> Label doesnt exist" )
+        if self.call_SP >= len(self.call_stack):
+            self.error("Call Stack Overflow")
 
+        self.call_stack[self.call_SP] = self.PC + 1
+        self.call_SP += 1
+        self.PC = self.labels[arg_label] + 1
+
+    def RET(self):
+        if self.call_SP == 0:
+            self.error("Call stack underflow")
+        self.call_SP -= 1
+        self.PC = self.call_stack[self.call_SP]
+        
     # Arithmetic and Logical operations
     def binary_op(self, op_func):
         b = self.POP()
@@ -121,20 +141,21 @@ class STACK_MACHINE:
         b = self.POP()
         if val.isnumeric():
             if float(val).is_integer():
-                self.PUSH(operator.rshift(b, val))
+                self.PUSH(operator.rshift(b, int(val)))
                 return
         address_type , address = self.is_valid_address(val)
+        if self.variables[address] == "NaN":
+            self.error("variable uninitialized")
         if not address_type  == 'variable':
             self.error("Integer or variable expected")
         self.PUSH(operator.rshift(b, self.variables[address]))
         return 
-
        
     def SHL(self, val):
         b = self.POP()
-        if isinstance(val, (int, float)):
+        if val.isnumeric():
             if float(val).is_integer():
-                self.PUSH(operator.lshift(b, val))
+                self.PUSH(operator.lshift(b, int(val)))
                 return
         address_type , address = self.is_valid_address(val)
         if self.variables[address] == "NaN":
@@ -194,18 +215,30 @@ class STACK_MACHINE:
             self.address[address] = a
 
     def is_valid_address(self, val):
+
         if val.startswith('@a'):
-            var_address = int(val.lstrip('@a'))
-            if var_address > self.no_of_var - 1:
-                self.error("Variable out of bound", "var_outside_range")
+            raw_index = val.removeprefix('@a')  
+            try:
+                var_address = int(raw_index)
+            except ValueError:
+                self.error(f"Invalid variable address format: '{val}'")
+            if var_address < 0 or var_address >= self.no_of_var:
+                self.error("Variable out of bound", "var_outside_range")    
             return ("variable", var_address)
-        
+
+    # Memory Address: *<index>
         if val.startswith('*'):
-            mem_address = int(val.lstrip('*'))
-            if mem_address > self.stack_size - 1:
-                self.error("Address out of bound" , "mem_address_outside_stacl")
-            return ("memory", mem_address)
-        self.error("Invalid memory or variable address")
+            raw_index = val.removeprefix('*') 
+            try:
+                mem_address = int(raw_index)
+            except ValueError:
+                self.error(f"Invalid memory address format: '{val}'")
+
+            if mem_address < 0 or mem_address >= self.stack_size:
+                self.error("Address out of bound", "mem_address_outside_stack") 
+        return ("memory", mem_address)
+
+        self.error("Invalid memory or variable address")  
 
 
     def HALT(self):
@@ -269,20 +302,18 @@ class Execution(STACK_MACHINE):
                 case "label":
                     pass
                     #self.check_label(operand)
-                case "DCR":
-                    self.dcrSP()
-
                 case "DUP":
                     self.DUP()
-
-                case "INR":
-                    self.inrSP()
                 case "JMP":
                     self.JMP(operand)
                 case "JNZ":
                     self.JNZ(operand)
                 case "JZ":
                     self.JZ(operand)
+                case "CALL":
+                    self.CALL(operand)
+                case "RET":
+                    self.RET()
 
                 case "OVER":
                     self.OVER()

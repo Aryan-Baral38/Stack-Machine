@@ -43,9 +43,11 @@ noinput_operations = {"ADD", "SUB", "MUL", "DIV", "GT", "GE",
 #these operations require operand
 input_operations = {"SHR", "SHL", "PUSH", "STACK_SIZE"}
 control_flow = {"JMP", "JZ", "JNZ"}
+subroutine = {"CALL", "RET"}
 address_input_operation = {"STORE", "LOAD" }
 all_operations = set.union(noinput_operations, input_operations,
-                           address_input_operation, control_flow)
+                           address_input_operation, control_flow,
+                           subroutine)
 
 '''
     the parser will read a list of [ tokens ] are return a list of tuples [ (opcode, operand(s) ],
@@ -77,6 +79,9 @@ def get_filename(debugging = False):
 def lexer(filename):
     tokens = []
  
+    if not filename.endswith('.txt'):
+        sys.exit("Enter filename.txt as file")
+        
     with open(filename, 'r') as file:
         line_no = 1
         token_pos = 0
@@ -84,7 +89,7 @@ def lexer(filename):
             line = line.strip()
 
             if not line == '':
-                new_tokens = list(line.split(' '))
+                new_tokens = list(line.split())
                 #print("line read: ", new_tokens)
                 for i in range(len(new_tokens)):
                     tokens += [(token_pos,line_no, i + 1, new_tokens[i])]
@@ -107,9 +112,9 @@ class Parser:
 
     #returns an atom and advance the position
     def consume(self):
-        parsing_atom = self.current_token[3]
         if self.pos > self.no_of_tokens:
             self.error("Out of Bounds, token pointer greater than the no of tokens")
+        parsing_atom = self.current_token[3]
         self.pos += 1
         return parsing_atom
 
@@ -167,13 +172,14 @@ class Parser:
 
     #returns the next atom
     def peek(self):
-        if self.pos < self.no_of_tokens:
+        if self.pos + 1< self.no_of_tokens:
             return self.tokens[self.pos + 1][3]
         return None
     @property
     def previous_atom(self):
-        if self.pos > 0:
+        if self.pos > 0 and self.pos <= self.no_of_tokens:
             return self.tokens[self.pos - 1][3]
+        return None
     
     def opcode_recognized(self):
         atom = self.current_token[3]
@@ -195,6 +201,21 @@ class Parser:
         if matches:
             self.error("Invalid label name")
         return (False, None)
+
+    def is_valid_address(self, token):
+        if not token:
+             return ("invalid", None)
+        
+        matches_var = re.search(r"^@a(\d+)$", token)
+        matches_mem = re.search(r"^\*(\d+)$", token)
+
+        if matches_var:
+            return ("var", int(matches_var.group(1)))
+        elif matches_mem:
+            return ("mem", int(matches_mem.group(1)))
+        else:
+            return ("invalid", None)
+
 
 
     def parse(self):
@@ -239,6 +260,20 @@ class Parser:
                 continue
             self.opcode_recognized()
 
+            if atom in subroutine:
+                if atom == "CALL":
+
+                    is_a_label, label = self.is_label(self.peek())
+                    if is_a_label:
+                        opcode = self.consume()
+                        self.consume()
+                        parsed_instructions.append((line_no, opcode, label))
+                    else:
+                        self.error("Expected a label <label>")
+                elif atom == "RET":
+                    opcode = self.consume()
+                    parsed_instructions.append((line_no, opcode, None))
+
             if atom in control_flow:
                 is_a_label, label = self.is_label(self.peek())
                 if is_a_label:
@@ -268,7 +303,7 @@ class Parser:
                     parsed_instructions.append((line_no, opcode, var_address))
                     continue
                 
-                if not self.peek().isdigit():
+                if not next_atom.isnumeric():
                     self.error("Operand invaid or missing", "for_current" )
 
                 opcode = self.consume()
@@ -288,9 +323,11 @@ class Parser:
                 #current atom is already valid so we consume it
                 opcode = self.consume()
                 if opcode == "HALT":
-                    parsed_instructions.append((line_no,atom, 'None'))
-                    break
+                    parsed_instructions.append((line_no,atom, None))
+                    continue
                 #after consumng, we are already at the next atom 
+                if self.current_atom is None:
+                    break
                 next_atom = self.current_atom
                 if next_atom  not in all_operations and not self.is_label(next_atom)[0]:
                     self.error(f"'{next_atom}' is invalid")
@@ -319,20 +356,6 @@ class Parser:
                     self.error("Invalid operand error") 
 
         return parsed_instructions
-
-    def is_valid_address(self, token):
-        if not token:
-             return ("invalid", None)
-        
-        matches_var = re.search(r"^@a(\d+)$", token)
-        matches_mem = re.search(r"^\*(\d+)$", token)
-
-        if matches_var:
-            return ("var", int(matches_var.group(1)))
-        elif matches_mem:
-            return ("mem", int(matches_mem.group(1)))
-        else:
-            return ("invalid", None)
 
 if __name__ == "__main__":
     file = get_filename(debugging = 0)
