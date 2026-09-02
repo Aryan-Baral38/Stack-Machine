@@ -27,14 +27,18 @@ cd stack-machine
 ```
 
 ### First Program 
-In `add.txt` file type this:
+Run`add.txt` file with `python stack_machine.py examples/add.txt` in the terminal:
 ```
 stack_size 10
 PUSH 10 
 PUSH 5 
 ADD 
 HALT
+```
+Output is `Evaluated value:  15.0 at address 0`
 
-```
-```
+Other example programs can be run in a similar way using
+
+`python stack_machine.py examples/<program_name.txt>` 
+
 ```
