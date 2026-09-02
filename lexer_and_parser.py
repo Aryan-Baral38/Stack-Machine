@@ -227,7 +227,7 @@ class Parser:
         while self.pos < self.no_of_tokens:
             atom = self.current_token[3].upper()
             line_no = self.current_token[1]
-            print("curent atom: ", atom) 
+            #print("curent atom: ", atom) 
             # stack_size is the first instrucion
             if self.pos == 0 and  atom != "STACK_SIZE":
                 self.error('First instruction must be stack size, use "stack_size"',)
@@ -341,7 +341,7 @@ class Parser:
             if atom in address_input_operation:
                 #memory addresses must start with *. eg: STORE *100
                 next_atom = self.peek()
-                print("peeked")
+                #print("peeked")
                 address_type, address = self.is_valid_address(next_atom)
                 if address_type in ("var", "mem"):
                     opcode = self.consume()
@@ -362,5 +362,5 @@ if __name__ == "__main__":
     tokens= lexer(file)
     parser_obj = Parser(tokens)
     final_instructions = parser_obj.parse()
-    print("\nParsed instrucions: ", final_instructions)
+    #print("\nParsed instrucions: ", final_instructions)
 

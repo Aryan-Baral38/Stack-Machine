@@ -11,7 +11,7 @@ from lexer_and_parser import lexer, Parser, get_filename
 class STACK_MACHINE:
     def __init__(self, size):
         self.SP = 0
-        print("SIZE:" ,size)
+        #print("SIZE:" ,size)
         self.stack_size = size
         self.address = ["NaN" for x in range(self.stack_size)]
         self.call_stack = [0]*10
@@ -90,7 +90,7 @@ class STACK_MACHINE:
         self.PUSH(self.address[self.SP - 2])
     #sub-routines
     def CALL(self, arg_label):
-        print("Inside CALL")
+        #print("Inside CALL")
         if arg_label not in self.labels:
             self.error(f"<{arg_label}> Label doesnt exist" )
         if self.call_SP >= len(self.call_stack):
@@ -101,8 +101,8 @@ class STACK_MACHINE:
         self.PC = self.labels[arg_label] + 1
 
     def RET(self):
-        print("call_stack", self.call_stack)
-        print("call_SP", self.call_SP)
+        #print("call_stack", self.call_stack)
+        #print("call_SP", self.call_SP)
         if self.call_SP == 0:
             self.error("Call stack underflow", "call_stack_underflow")
         self.call_SP -= 1
@@ -251,10 +251,9 @@ class STACK_MACHINE:
         self.quit()
 
     def quit(self):
-        print("Executed without error")
         print("Evaluated value: ", self.address[self.SP - 1], "at address", self.SP - 1)
         print("Stack")
-        for i in range(len(self.address)):
+        for i in range(10):
             if i == self.SP - 1:
                 print(f"[{i}]: --> {self.address[i]}")
             else:
@@ -262,7 +261,7 @@ class STACK_MACHINE:
 
             
           
-        print("output buffer: ", self.output_buffer)
+        #print("output buffer: ", self.output_buffer)
         print("variables " , self.variables)
         sys.exit()
     
@@ -303,7 +302,7 @@ class Execution(STACK_MACHINE):
             pos += 1
 
     def execute(self):
-        print("parsed_instructions: " ,self.parsed_instructions)
+        #print("parsed_instructions: " ,self.parsed_instructions)
         while self.PC < self.no_of_instructions:
             instruction = self.parsed_instructions[self.PC]
 
@@ -402,7 +401,6 @@ class Execution(STACK_MACHINE):
                     self.STORE(operand)
 
                 case "HALT":
-                    print("inside halt")
                     self.HALT()
                 
                 case _:

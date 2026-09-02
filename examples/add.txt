@@ -1,0 +1,5 @@
+stack_size 10
+PUSH 10
+PUSH 5
+ADD
+HALT

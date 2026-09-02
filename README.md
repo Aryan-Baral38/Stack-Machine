@@ -27,15 +27,13 @@ cd stack-machine
 ```
 
 ### First Program 
-In add.txt file type this:
+In `add.txt` file type this:
 ```
 stack_size 10
 PUSH 10 
 PUSH 5 
 ADD 
 HALT
-```
-
 
 ```
 ```
