@@ -22,5 +22,21 @@ A lightweight, stack-based programming language and virtual machine written in P
 Clone the repository and ensure you have Python 3.10+ installed:
 
 ```bash
-git clone [https://github.com/your-username/stack-machine.git](https://github.com/your-username/stack-machine.git)
+git clone [https://github.com/Aryan-Baral38/stack-machine.git]
 cd stack-machine
+```
+
+### First Program 
+In add.txt file type this:
+```
+stack_size 10
+PUSH 10 
+PUSH 5 
+ADD 
+HALT
+```
+
+
+```
+```
+```
