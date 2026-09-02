@@ -87,7 +87,7 @@ def lexer(filename):
         token_pos = 0
         for line in file:
             line = line.strip()
-            
+            line = line.split('//', 1)[0].rstrip() 
 
             if not line == '':
                 new_tokens = list(line.split())
