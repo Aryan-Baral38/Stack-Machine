@@ -1,0 +1,10 @@
+stack_size 10
+PUSH 10
+PUSH 20
+JNZ <Y>
+PUSH 0
+
+<Y>
+PUSH 30
+HALT
+

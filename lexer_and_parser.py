@@ -87,12 +87,13 @@ def lexer(filename):
         token_pos = 0
         for line in file:
             line = line.strip()
+            
 
             if not line == '':
                 new_tokens = list(line.split())
                 #print("line read: ", new_tokens)
                 for i in range(len(new_tokens)):
-                    tokens += [(token_pos,line_no, i + 1, new_tokens[i])]
+                    tokens += [(token_pos,line_no, i + 1, new_tokens[i].upper())]
                     token_pos += 1
             line_no += 1
 
@@ -206,7 +207,7 @@ class Parser:
         if not token:
              return ("invalid", None)
         
-        matches_var = re.search(r"^@a(\d+)$", token)
+        matches_var = re.search(r"^@a|A(\d+)$", token)
         matches_mem = re.search(r"^\*(\d+)$", token)
 
         if matches_var:

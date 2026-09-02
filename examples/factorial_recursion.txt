@@ -1,0 +1,17 @@
+stack_size 30
+push 4
+call <fact>
+halt
+
+<fact>
+  dup
+  jz <base>
+  dup
+  dcr 
+  call <fact>
+  mul
+  ret 
+<base>
+  pop 
+  push 1
+  ret

@@ -1,0 +1,32 @@
+stack_size 50
+
+push 10  
+call <fib>
+halt
+
+<fib>
+  dup
+  jz <base_0>
+
+  dup
+  push 1
+  sub 
+  jz <base_1>
+
+  dup
+  dcr 
+  call <fib>
+
+  swap
+  push 2
+  sub
+  call <fib>
+
+  add 
+  ret 
+
+<base_0>
+  ret
+
+<base_1>
+  ret

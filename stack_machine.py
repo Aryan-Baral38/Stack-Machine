@@ -60,14 +60,14 @@ class STACK_MACHINE:
 
     def PUSH(self, value):
         if self.SP >= self.stack_size:
-            self.error("Stack overflow, pushing outside stack", "larger_than_stack")
+            self.error("Stack overflow, pushing outside stack", "stack_overflow")
         self.address[self.SP] = value
         self.input_buffer.append(value)
         self.inrSP()
 
     def POP(self):
         if self.SP <= 0:
-            self.error("Stack underflow", "stack_overflow")
+            self.error("Stack underflow", "stack_underflow")
         val = self.address[self.SP - 1]
         self.address[self.SP - 1] = 0
         self.dcrSP()
@@ -78,7 +78,7 @@ class STACK_MACHINE:
         self.PUSH(self.address[self.SP - 1])
 
     def SWAP(self):
-        if self.SP < 1:
+        if self.SP < 2:
             self.error("Nothing to swap, Stack underflow")
         a = self.address[self.SP - 2]
         self.address[self.SP - 2] = self.address[self.SP - 1]
@@ -218,8 +218,8 @@ class STACK_MACHINE:
 
     def is_valid_address(self, val):
 
-        if val.startswith('@a'):
-            raw_index = val.removeprefix('@a')  
+        if val.startswith('@A'):
+            raw_index = val.removeprefix('@A')  
             try:
                 var_address = int(raw_index)
             except ValueError:
@@ -242,7 +242,7 @@ class STACK_MACHINE:
                 self.error("Stack overflow", "stack_overflow") 
             if mem_address < 0:
                 self.error("Stack underflow")
-        return ("memory", mem_address)
+            return ("memory", mem_address)
 
         self.error("Invalid memory or variable address")  
 
@@ -253,7 +253,12 @@ class STACK_MACHINE:
     def quit(self):
         print("Evaluated value: ", self.address[self.SP - 1], "at address", self.SP - 1)
         print("Stack")
-        for i in range(10):
+        show = 0
+        if self.stack_size < 10:
+            show = self.stack_size
+        else:
+            show = 10
+        for i in range(show):
             if i == self.SP - 1:
                 print(f"[{i}]: --> {self.address[i]}")
             else:
@@ -268,7 +273,7 @@ class STACK_MACHINE:
     def error(self, error_msg, code = None):
         disp = ''
         match code:
-            case "stack_overflow": disp = f"Stack upto address {self.stack_size - 1} but accessing address{self.SP}"
+            case "stack_overflow": disp = f"Stack upto address {self.stack_size - 1} but accessing address {self.SP}"
             case "call_stack_overflow": ...
             case "call_stack_underflow": disp = f"RET executed on an empty call stack"
 

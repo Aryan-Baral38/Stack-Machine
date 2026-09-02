@@ -1,0 +1,28 @@
+STACK_SIZE 10
+PUSH 10
+STORE @a0        
+PUSH 0
+STORE @a1       
+PUSH 1
+STORE @a2      
+
+<FIB_LOOP>
+  LOAD @a0
+  JZ <END>      
+
+  LOAD @a1
+  LOAD @a2
+  ADD          
+
+  LOAD @a2
+  STORE @a1   
+  STORE @a2  
+
+  LOAD @a0
+  DCR
+  STORE @a0 
+  JMP <FIB_LOOP>
+
+<END>
+  LOAD @a1 
+  HALT
