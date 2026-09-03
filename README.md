@@ -1,6 +1,6 @@
 # Stack Machine
 
-A lightweight, stack-based programming language and virtual machine written in Python. It features a simple instruction set, zero-register architecture, label-based control flow, subroutine calls, and precise error reporting with line and column tracking.
+A lightweight, stack-based programming language with a virtual machine and bytecode interpreter wirtten form scratch. It features a simple instruction set, zero-register architecture, label-based control flow, subroutine calls, and precise error reporting with line and column tracking.
 
 ---
 
@@ -41,4 +41,3 @@ Other example programs can be run in a similar way using
 
 `python stack_machine.py examples/<program_name.txt>` 
 
-```
