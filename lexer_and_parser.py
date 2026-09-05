@@ -165,7 +165,7 @@ class Parser:
             case "missing_address_specifier":
                 disp = "use prefix * for memory address or @a for variable address"
 
-        print("Compt Error:", error_msg,f":{disp}:","on", "line",
+        print("Parse Error:", error_msg,f":{disp}:","on", "line",
                self.current_token[1], "col",
                self.current_token[2])
 

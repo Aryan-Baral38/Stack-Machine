@@ -278,7 +278,7 @@ class STACK_MACHINE:
             case "call_stack_underflow": disp = f"RET executed on an empty call stack"
 
 
-        print("Runt Error:" , error_msg,f":{disp}:","line", self.parsed_instructions[self.PC - 1][0] )
+        print("Exec Error:" , error_msg,f":{disp}:","line", self.parsed_instructions[self.PC - 1][0] )
         sys.exit()
     #lexing and executing
 
