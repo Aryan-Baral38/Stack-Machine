@@ -2,7 +2,7 @@
 
 The following is a high level overview of how this language works. It documents the execution pipeline. For the architecture and instruction set, view the specs.md file.
 
-```Source code --> [Lexer] --> tokens --> [Parser] --> Instructions --> [VM] --> output ```
+### ```Source code --> [Lexer] --> tokens --> [Parser] --> Instructions --> [VM] --> output ```
 ---
 
 ## Lexing

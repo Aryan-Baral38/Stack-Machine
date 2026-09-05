@@ -23,48 +23,43 @@ The core execution engine `STACK_MACHINE` in `stack_machine.py` emulates a machi
 
 # Instruction Set 
  
-## Stack Manipulation
+## 1.Stack Manipulation
 
 ### `PUSH val`
 * `val` can be a literal, a variable(`@a<address>`) or memory address (`*<address>`)
 * Pushes val onto the evaluation stack.
-
 ### `POP`
 * Removes the value on the top of the stack.
-
 ### `DUP`
 * Duplicates the top value of the evaluation stack.
-
 ### `SWAP`
 * Exchanges the position of the top two elements on the stack.
-
 ### `OVER`
 * Copies the second item from the top and pushed it onto the stack.
-* Eg:
+* Example:
 ```
 instruction     stack
----
-PUSH 10        ->[10]
-PUSH 20        ->[10, 20]
-SWAP           ->[20, 10]
-DUP            ->[20, 10, 10]
-POP            ->[20, 10]
-OVER           ->[20, 10, 20]
+PUSH 10         [10]
+PUSH 20         [10, 20]
+SWAP            [20, 10]
+DUP             [20, 10, 10]
+POP             [20, 10]
+OVER            [20, 10, 20]
 ```
 
-## ARITHEMATIC AND LOGICAL OPERATIONS
+## 2.ARITHEMATIC AND LOGICAL OPERATIONS
 
 ### BINARY OPERATIONS
 * Includes `ADD`, `SUB`, `MUL`, `DIV`, `MOD`.
 * Pop the top two vlues and perfrom binary opertion on them, If  stack is [..., b, a]` then it pops `a` and `b` then, perfoms `a (bin) b` and push the value.
 * Eg:
 ```
-Instruction    stack
-PUSH 12       ->[12]
-PUSH 10       ->[12, 10]
-ADD           ->[22]
-PUSH 20       ->[22, 20]
-SUB           ->[-2]
+Instruction     stack
+PUSH 12         [12]
+PUSH 10         [12, 10]
+ADD             [22]
+PUSH 20         [22, 20]
+SUB             [-2]
 ```
 
 ### BITWISE AND BOOLEAN
@@ -73,18 +68,17 @@ SUB           ->[-2]
 * `AND`, `OR`, `XOR` pops the top two values and perform bitwise boolean operations and pushes the result.
 * `NOT` performs bitwise NOT operation on the top element of stack.
 * `SHL` and `SHR` performs bitwise left shift and right shift respectively.
-* Eg:
-```
-instruction    stack 
-PUSH 10       ->[10]
-PUSH 12       ->[10, 12]
-GE            ->[1]
-```
-
 ### COMPARISIONS
 * Includes `EQ` (equal), `LT` (less than), `GT` (greater than) (Pops top 2 values and pushes a 1 or 0 boolean)
+* Example:
+```
+instruction     stack 
+PUSH 10         [10]
+PUSH 12         [10, 12]
+GE              [1]
+```
 
-## MEMORY ACCESS
+## 3.MEMORY ACCESS
 * Includes instructions to load form or store to persistent memory as well as random access to the evaluation stack.
 
 
